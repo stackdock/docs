@@ -1,0 +1,185 @@
+---
+title: Architecture Overview
+description: Complete system design and architecture of StackDock
+---
+
+# Architecture Overview
+
+## The Three Registries
+
+StackDock is built on three core concepts that work together to provide a complete infrastructure management platform:
+
+### 1. Docks Registry: Infrastructure Adapters
+
+Infrastructure adapters (copy/paste/own):
+- GridPane, Vercel, AWS, DigitalOcean, Cloudflare, etc.
+- Community-built and official adapters
+- Translates provider APIs to universal schema
+
+### 2. UI Registry: Dashboard Components
+
+Dashboard components (shadcn/ui model):
+- Server health widgets, deployment timelines, etc.
+- Works with ANY provider (provider-agnostic)
+- Copy, customize, own
+
+### 3. The Platform: Orchestration Layer
+
+- Universal data model (schema.ts)
+- RBAC enforcement (unlimited users)
+- Encryption & security (AES-256-GCM)
+- Audit logging
+- Real-time sync
+
+## Core Architecture
+
+### Universal Tables (Provider-Agnostic)
+
+StackDock uses a unified data model that works across all providers:
+
+- **`servers`**: AWS, DigitalOcean, Vultr, Hetzner → ONE table
+- **`webServices`**: Vercel, Netlify, Railway, GridPane → ONE table
+- **`domains`**: Cloudflare, Route53, Namecheap → ONE table
+
+### Dock Adapters (Translators)
+
+Each dock adapter translates provider-specific APIs to the universal schema:
+
+- GridPane API → Universal `webServices` table
+- Vercel API → Universal `webServices` table
+- Provider-specific data stored in `fullApiData` field
+
+### Key Principles
+
+1. **Provider Agnostic**: All resources normalized to universal schema
+2. **No Vendor Lock-in**: You own the adapter code
+3. **Extensible**: If it has an API, it can be a dock
+4. **Composable**: Mix and match providers as needed
+
+## Data Model
+
+### Universal Resource Schema
+
+```typescript
+// Web Services (PaaS/Hosting)
+webServices: {
+  provider: string,           // "gridpane", "vercel", etc.
+  providerResourceId: string, // Provider's ID
+  name: string,
+  productionUrl: string,
+  status: string,
+  fullApiData: any,          // Raw provider response
+  organizationId: string,
+  projectId?: string,
+}
+
+// Servers (IaaS)
+servers: {
+  provider: string,
+  providerResourceId: string,
+  name: string,
+  ipAddress: string,
+  status: string,
+  fullApiData: any,
+  organizationId: string,
+  projectId?: string,
+}
+
+// Domains (DNS)
+domains: {
+  provider: string,
+  providerResourceId: string,
+  domain: string,
+  status: string,
+  fullApiData: any,
+  organizationId: string,
+  projectId?: string,
+}
+```
+
+## Security Model
+
+### Zero-Trust Architecture
+
+- No assumptions about user access
+- Every request authenticated
+- Org membership verified
+- Role permissions checked
+- Resource ownership validated
+
+### Encryption
+
+- AES-256-GCM for sensitive data
+- API keys encrypted at rest
+- Master key stored securely
+- Per-organization encryption
+
+### RBAC (Role-Based Access Control)
+
+```typescript
+{
+  projects: "none" | "read" | "full",
+  resources: "none" | "read" | "full",
+  docks: "none" | "read" | "full",
+  operations: "none" | "read" | "full",
+  settings: "none" | "read" | "full",
+}
+```
+
+## Sync Architecture
+
+### Real-Time Updates
+
+- Convex provides real-time subscriptions
+- Changes propagate instantly
+- No polling required
+- Optimistic UI updates
+
+### Provider Sync
+
+1. User connects dock adapter
+2. Initial sync fetches all resources
+3. Periodic background sync
+4. Webhook support (where available)
+5. Manual refresh option
+
+## Tech Stack
+
+### Frontend
+- **TanStack Start** - Full-stack React framework
+- **shadcn/ui** - Component primitives
+- **Tailwind CSS 4** - Styling
+- **XState** - State machines
+
+### Backend
+- **Convex** - Real-time database
+- **Clerk** - Authentication & organizations
+
+### Infrastructure
+- **Next.js** compatible
+- **Vercel** deployment ready
+- **Docker** support
+
+## Provider Support
+
+### Planned Docks (Adapters)
+
+**PaaS/Server Management**:
+GridPane, Kinsta, Rocket.net, RunCloud, Coolify, Cloudways, Vercel, Netlify, Render, Fly.io, Railway, Laravel Forge, Ploi, InstaWP
+
+**IaaS**:
+AWS, GCP, Azure, Hetzner, DigitalOcean, Linode, Vultr
+
+**DNS/Domains**:
+Cloudflare, Route53, Namecheap
+
+**APM/Monitoring**:
+Posthog, New Relic, Sentry, Datadog
+
+**If it has an API, it can be a dock.**
+
+## Next Steps
+
+- Read the [Dock Adapter Guide](/docs/guides/dock-adapter) to build your own adapter
+- See [Current Progress](/docs/progress) for implementation status
+- Check [Contributing](/docs/guides/contributing) to get involved

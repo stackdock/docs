@@ -1,0 +1,300 @@
+---
+title: Contributing
+description: How to contribute to StackDock
+---
+
+# Contributing to StackDock
+
+We welcome contributions! This guide will help you get started contributing to StackDock.
+
+## Ways to Contribute
+
+1. **Build dock adapters** for new providers
+2. **Create UI components** for the registry
+3. **Improve documentation**
+4. **Report bugs**
+5. **Share feedback**
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+- Git
+
+### Setup Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/stackdock/stackdock.git
+cd stackdock
+
+# Install dependencies
+npm install
+
+# Setup environment variables
+cp env.example .env.local
+
+# Generate encryption key
+node scripts/generate-encryption-key.js
+
+# Start Convex (terminal 1)
+npm run dev:convex
+
+# Start the app (terminal 2)
+cd apps/web
+npm run dev
+```
+
+### Environment Variables
+
+Create `apps/web/.env.local` with:
+
+```
+VITE_CONVEX_URL=https://<your-deployment>.convex.cloud
+CONVEX_DEPLOYMENT=dev:<your-deployment>
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+CLERK_WEBHOOK_SECRET=whsec_...
+ENCRYPTION_MASTER_KEY=<64-char-hex-from-generator>
+VITE_APP_URL=http://localhost:3000
+NODE_ENV=development
+```
+
+## Development Workflow
+
+### 1. Create a Branch
+
+```bash
+git checkout -b feature/my-new-feature
+```
+
+### 2. Make Changes
+
+- Follow existing code style
+- Add tests for new features
+- Update documentation
+
+### 3. Test Your Changes
+
+```bash
+# Run tests
+npm test
+
+# Run linter
+npm run lint
+
+# Build to check for errors
+npm run build
+```
+
+### 4. Commit Your Changes
+
+We use conventional commits:
+
+```bash
+git commit -m "feat: add GridPane dock adapter"
+git commit -m "fix: resolve connection timeout issue"
+git commit -m "docs: update architecture guide"
+```
+
+Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting)
+- `refactor`: Code refactoring
+- `test`: Test changes
+- `chore`: Build/tooling changes
+
+### 5. Push and Create PR
+
+```bash
+git push origin feature/my-new-feature
+```
+
+Then create a Pull Request on GitHub.
+
+## Building a Dock Adapter
+
+See the [Dock Adapter Guide](/docs/guides/dock-adapter) for detailed instructions.
+
+Quick checklist:
+- [ ] Implement `DockAdapter` interface
+- [ ] Map to universal schema
+- [ ] Add error handling
+- [ ] Add rate limiting
+- [ ] Write tests
+- [ ] Add documentation
+- [ ] Test with real credentials
+
+## Building UI Components
+
+UI components follow the shadcn/ui model:
+
+```typescript
+// packages/ui/components/server-card.tsx
+export function ServerCard({ server }: { server: Server }) {
+  return (
+    <div className="border rounded-lg p-4">
+      <h3>{server.name}</h3>
+      <p>{server.ipAddress}</p>
+      <span className={getStatusColor(server.status)}>
+        {server.status}
+      </span>
+    </div>
+  );
+}
+```
+
+Components should be:
+- Provider-agnostic
+- Reusable
+- Well-documented
+- Accessible
+
+## Code Style
+
+### TypeScript
+
+- Use TypeScript for all code
+- Define proper types/interfaces
+- Avoid `any` when possible
+- Use descriptive variable names
+
+### React
+
+- Use functional components
+- Use hooks appropriately
+- Keep components small and focused
+- Extract reusable logic into hooks
+
+### Styling
+
+- Use Tailwind CSS
+- Follow existing design patterns
+- Ensure responsive design
+- Test in different browsers
+
+## Testing
+
+### Unit Tests
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { GridPaneDockAdapter } from './adapter';
+
+describe('GridPaneDockAdapter', () => {
+  it('connects successfully', async () => {
+    const adapter = new GridPaneDockAdapter();
+    const result = await adapter.connect({
+      apiToken: 'test_token',
+    });
+    expect(result.connected).toBe(true);
+  });
+});
+```
+
+### Integration Tests
+
+Test adapters with real providers:
+
+```typescript
+describe('GridPane Integration', () => {
+  it('fetches real sites', async () => {
+    const adapter = new GridPaneDockAdapter();
+    await adapter.connect({
+      apiToken: process.env.GRIDPANE_TOKEN!,
+    });
+    const sites = await adapter.fetchWebServices();
+    expect(sites.length).toBeGreaterThan(0);
+  });
+});
+```
+
+## Documentation
+
+### Code Documentation
+
+```typescript
+/**
+ * Fetches all web services from the provider
+ * 
+ * @returns Array of web services mapped to universal schema
+ * @throws DockAdapterError if the request fails
+ */
+async fetchWebServices(): Promise<WebService[]> {
+  // implementation
+}
+```
+
+### README Files
+
+Every major component should have a README:
+
+```markdown
+# GridPane Dock Adapter
+
+## Overview
+Brief description of what this adapter does.
+
+## Configuration
+How to configure and use the adapter.
+
+## Features
+- What features are supported
+- What features are not yet implemented
+
+## Testing
+How to test the adapter.
+```
+
+## Security
+
+### Reporting Vulnerabilities
+
+**DO NOT** create public GitHub issues for security vulnerabilities.
+
+Email: security@stackdock.dev
+
+### Security Guidelines
+
+- Never commit secrets or API keys
+- Use environment variables for sensitive data
+- Always encrypt sensitive data at rest
+- Validate all user input
+- Follow principle of least privilege
+
+## Community
+
+### Code of Conduct
+
+Be respectful, inclusive, and professional.
+
+### Getting Help
+
+- GitHub Issues: Bug reports and feature requests
+- GitHub Discussions: Questions and community chat
+- Email: contact@stackdock.dev
+
+## Release Process
+
+1. Update version in `package.json`
+2. Update CHANGELOG.md
+3. Create release notes
+4. Tag the release
+5. Deploy to production
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.
+
+## Questions?
+
+Feel free to reach out:
+- **Issues**: [GitHub Issues](https://github.com/stackdock/stackdock/issues)
+- **Email**: contact@stackdock.dev
+- **Website**: [stackdock.dev](https://stackdock.dev)
+
+Thank you for contributing to StackDock! 🎉

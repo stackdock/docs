@@ -1,0 +1,117 @@
+---
+title: Introduction
+description: Welcome to StackDock - Open Source Multi-Cloud Management Platform
+---
+
+# StackDock
+
+**Open Source Multi-Cloud Management Platform**
+
+Manage websites, apps, databases, servers, and APM tools across multiple providers from a unified interface.
+
+![StackDock Logo](https://github.com/stackdock/stackdock/blob/main/docs/stackdock-logo-dark-mode.svg?raw=true)
+
+## The Vision
+
+**Remember how shadcn/ui changed UI development?**
+
+```bash
+npx shadcn add button
+# → Copies component into YOUR codebase
+# → You own the code
+# → No vendor lock-in
+```
+
+**StackDock does the same for infrastructure.**
+
+```bash
+npx stackdock add gridpane
+# → Copies infrastructure adapter into YOUR codebase
+# → You own the dock adapter
+# → Customize, fork, publish your own
+```
+
+### Why This Matters
+
+- **WordPress democratized content management**
+- **StackDock democratizes infrastructure management**
+- **True FOSS**: You own the code (docks, UI, everything)
+- **Composable**: Build your perfect control plane
+- **Extensible**: If it has an API, it can be a dock
+
+## Welcome Aboard Captain! ⚓️
+
+You're early – but welcome to the shipyard! The blueprints are evolving, the vision is locked in, and we're building in public.
+
+**This isn't just another tool.** It's infrastructure's WordPress moment.
+
+Star the repo to watch the build! ⭐
+
+## ⚠️ PRE-ALPHA WARNING ⚠️
+
+**This is pre-alpha software. NOT ready for production.**
+
+- Breaking changes frequent
+- Core features under development
+- Database schema evolving
+- DO NOT use with critical infrastructure
+
+**For early contributors only.** Star for updates on stable releases.
+
+## Quick Start
+
+**Prerequisites**: Node.js 18+, npm 9+
+
+```bash
+# Clone & install
+git clone https://github.com/stackdock/stackdock.git
+cd stackdock
+npm install
+
+# Setup environment
+node scripts/generate-encryption-key.js
+# Create apps/web/.env.local with your Convex + Clerk values
+# Paste the generated ENCRYPTION_MASTER_KEY into apps/web/.env.local
+
+# Start Convex (terminal 1)
+npm run dev:convex
+
+# Start app (terminal 2)
+cd apps/web
+npm run dev
+```
+
+**Open http://localhost:3000**
+
+You should see:
+- Landing page with StackDock branding
+- **Green "Connected" status** if Convex is configured correctly
+- Connection status indicator shows: "Connected • Convex is connected!"
+
+## Current Status
+
+- ✅ **TanStack Start** - Fully configured with file-based routing
+- ✅ **Convex** - Connected and working (test query available)
+- ✅ **Clerk** - Authentication integrated and working
+- ✅ **User Sync** - Auto-syncs users from Clerk to Convex
+- ⏳ **Dock Adapters** - Ready to build once encryption is added
+
+## Tech Stack
+
+- **[TanStack Start](https://tanstack.com/start)** - Full-stack React framework
+- **[Convex](https://convex.dev)** - Real-time database
+- **[Clerk](https://clerk.com)** - Authentication & orgs
+- **[XState](https://xstate.js.org)** - State machines
+- **[shadcn/ui](https://ui.shadcn.com)** - Component primitives
+- **[Tailwind CSS 4](https://tailwindcss.com)** - Styling
+
+## License
+
+MIT License - see [LICENSE](https://github.com/stackdock/stackdock/blob/main/LICENSE) for details.
+
+## Contact
+
+- **Website**: [stackdock.dev](https://stackdock.dev)
+- **Security**: security@stackdock.dev
+- **General**: contact@stackdock.dev
+- **Issues**: [GitHub Issues](https://github.com/stackdock/stackdock/issues)
