@@ -1,0 +1,353 @@
+---
+title: Dock Adapter Guide
+description: Learn how to build dock adapters for StackDock
+---
+
+# Dock Adapter Guide
+
+This guide will walk you through creating a dock adapter to connect any infrastructure provider to StackDock.
+
+## What is a Dock Adapter?
+
+A dock adapter is a module that translates a provider's API into StackDock's universal schema. Think of it as a translator that makes any provider's infrastructure look like StackDock's data model.
+
+## The shadcn/ui Model for Infrastructure
+
+Just like shadcn/ui for components:
+
+```bash
+npx shadcn add button
+# → Copies component into YOUR codebase
+# → You own the code
+```
+
+StackDock does the same for infrastructure:
+
+```bash
+npx stackdock add gridpane
+# → Copies infrastructure adapter into YOUR codebase
+# → You own the dock adapter
+# → Customize, fork, publish your own
+```
+
+## Adapter Structure
+
+Every dock adapter follows this structure:
+
+```typescript
+// docks/[provider]/index.ts
+export interface DockAdapter {
+  // Metadata
+  name: string;
+  version: string;
+  provider: string;
+  
+  // Connection
+  connect(credentials: Credentials): Promise<Connection>;
+  disconnect(): Promise<void>;
+  
+  // Resource fetching
+  fetchWebServices(): Promise<WebService[]>;
+  fetchServers(): Promise<Server[]>;
+  fetchDomains(): Promise<Domain[]>;
+  
+  // Operations (optional)
+  createWebService?(config: WebServiceConfig): Promise<WebService>;
+  deleteWebService?(id: string): Promise<void>;
+  // ... other operations
+}
+```
+
+## Creating Your First Adapter
+
+### 1. Define Credentials Schema
+
+```typescript
+// docks/gridpane/credentials.ts
+export interface GridPaneCredentials {
+  apiToken: string;
+  apiUrl?: string; // Optional, defaults to GridPane API
+}
+```
+
+### 2. Implement Connection
+
+```typescript
+// docks/gridpane/client.ts
+export class GridPaneClient {
+  private apiToken: string;
+  private baseUrl: string;
+  
+  constructor(credentials: GridPaneCredentials) {
+    this.apiToken = credentials.apiToken;
+    this.baseUrl = credentials.apiUrl || 'https://api.gridpane.com';
+  }
+  
+  async request(endpoint: string, options?: RequestInit) {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${this.apiToken}`,
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`GridPane API error: ${response.statusText}`);
+    }
+    
+    return response.json();
+  }
+}
+```
+
+### 3. Map to Universal Schema
+
+```typescript
+// docks/gridpane/mappers.ts
+export function mapToWebService(gpSite: GridPaneSite): WebService {
+  return {
+    provider: 'gridpane',
+    providerResourceId: gpSite.id,
+    name: gpSite.name,
+    productionUrl: gpSite.url,
+    status: gpSite.status === 'active' ? 'running' : 'stopped',
+    fullApiData: gpSite, // Store complete response
+    // organizationId added by StackDock
+    // projectId can be linked later
+  };
+}
+
+export function mapToServer(gpServer: GridPaneServer): Server {
+  return {
+    provider: 'gridpane',
+    providerResourceId: gpServer.id,
+    name: gpServer.name,
+    ipAddress: gpServer.ip,
+    status: gpServer.status,
+    fullApiData: gpServer,
+  };
+}
+```
+
+### 4. Implement the Adapter
+
+```typescript
+// docks/gridpane/adapter.ts
+export class GridPaneDockAdapter implements DockAdapter {
+  name = 'GridPane';
+  version = '1.0.0';
+  provider = 'gridpane';
+  
+  private client: GridPaneClient;
+  
+  async connect(credentials: GridPaneCredentials) {
+    this.client = new GridPaneClient(credentials);
+    
+    // Test connection
+    await this.client.request('/v1/servers');
+    
+    return {
+      connected: true,
+      provider: this.provider,
+    };
+  }
+  
+  async disconnect() {
+    // Cleanup if needed
+    this.client = null;
+  }
+  
+  async fetchWebServices() {
+    const sites = await this.client.request('/v1/sites');
+    return sites.map(mapToWebService);
+  }
+  
+  async fetchServers() {
+    const servers = await this.client.request('/v1/servers');
+    return servers.map(mapToServer);
+  }
+  
+  async fetchDomains() {
+    // GridPane doesn't manage domains directly
+    return [];
+  }
+}
+```
+
+### 5. Export the Adapter
+
+```typescript
+// docks/gridpane/index.ts
+export { GridPaneDockAdapter } from './adapter';
+export type { GridPaneCredentials } from './credentials';
+```
+
+## Universal Schema Reference
+
+### WebService
+
+Used for PaaS, hosting, and web applications:
+
+```typescript
+interface WebService {
+  provider: string;
+  providerResourceId: string;
+  name: string;
+  productionUrl: string;
+  status: 'running' | 'stopped' | 'deploying' | 'error';
+  fullApiData: any;
+  organizationId: string;
+  projectId?: string;
+}
+```
+
+### Server
+
+Used for IaaS and server infrastructure:
+
+```typescript
+interface Server {
+  provider: string;
+  providerResourceId: string;
+  name: string;
+  ipAddress: string;
+  status: string;
+  fullApiData: any;
+  organizationId: string;
+  projectId?: string;
+}
+```
+
+### Domain
+
+Used for DNS and domain management:
+
+```typescript
+interface Domain {
+  provider: string;
+  providerResourceId: string;
+  domain: string;
+  status: string;
+  fullApiData: any;
+  organizationId: string;
+  projectId?: string;
+}
+```
+
+## Best Practices
+
+### 1. Error Handling
+
+```typescript
+async fetchWebServices() {
+  try {
+    const sites = await this.client.request('/v1/sites');
+    return sites.map(mapToWebService);
+  } catch (error) {
+    throw new DockAdapterError(
+      'Failed to fetch web services',
+      this.provider,
+      error
+    );
+  }
+}
+```
+
+### 2. Rate Limiting
+
+```typescript
+private rateLimit = new RateLimiter({
+  requestsPerSecond: 10,
+});
+
+async request(endpoint: string) {
+  await this.rateLimit.wait();
+  return this.client.request(endpoint);
+}
+```
+
+### 3. Caching
+
+```typescript
+private cache = new Map<string, { data: any; timestamp: number }>();
+
+async fetchWebServices() {
+  const cached = this.cache.get('webServices');
+  if (cached && Date.now() - cached.timestamp < 60000) {
+    return cached.data;
+  }
+  
+  const data = await this.client.request('/v1/sites');
+  this.cache.set('webServices', { data, timestamp: Date.now() });
+  return data.map(mapToWebService);
+}
+```
+
+### 4. Full API Data
+
+Always store the complete provider response in `fullApiData`:
+
+```typescript
+fullApiData: {
+  // Complete GridPane response
+  id: "gp_123",
+  name: "example.com",
+  url: "https://example.com",
+  status: "active",
+  php_version: "8.2",
+  wordpress_version: "6.4",
+  // ... all other fields
+}
+```
+
+This allows:
+- Provider-specific features
+- Future schema evolution
+- Debugging and support
+- Custom UI components
+
+## Testing Your Adapter
+
+```typescript
+// docks/gridpane/adapter.test.ts
+describe('GridPaneDockAdapter', () => {
+  it('connects successfully with valid credentials', async () => {
+    const adapter = new GridPaneDockAdapter();
+    const result = await adapter.connect({
+      apiToken: 'test_token',
+    });
+    
+    expect(result.connected).toBe(true);
+  });
+  
+  it('maps GridPane sites to WebServices', async () => {
+    const adapter = new GridPaneDockAdapter();
+    await adapter.connect({ apiToken: 'test_token' });
+    
+    const services = await adapter.fetchWebServices();
+    expect(services[0]).toMatchObject({
+      provider: 'gridpane',
+      name: expect.any(String),
+      productionUrl: expect.any(String),
+    });
+  });
+});
+```
+
+## Publishing Your Adapter
+
+Once your adapter is complete:
+
+1. Test thoroughly with real credentials
+2. Add documentation
+3. Submit a PR to the docks registry
+4. Share with the community
+
+## Next Steps
+
+- See existing adapters in `/docks` for reference
+- Read the [Architecture Overview](/docs/architecture/overview)
+- Check [Contributing Guide](/docs/guides/contributing)
+- Join the community discussions
